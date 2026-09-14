@@ -24,29 +24,34 @@ const registerUser = asyncHandler(async (req, res) => {
     ){
         throw new ApiError(400,"All fields are required");
     }
-    const existingUser = User.findOne({
+    const existingUser = await User.findOne({
         $or: [{email},{username}]
     });
     if(existingUser){
         throw new ApiError(409,"User already exists");
     }
-    const avatarPath = req.files?.avatar[0]?.path;
-    const coverImagePath = req.files?.cover[0]?.path;
+    const avatarPath = req.files?.avatar?.[0]?.path;
+    const coverImagePath = req.files?.coverImage?.[0]?.path;
 
-    if(!avatarPath || !coverImagePath){
-        throw new ApiError(400,"Avatar and cover image are required");
-    }
-    const avatar = await uplodOnCloudinary(avatarPath, "avatars");
-    const coverImage = await uplodOnCloudinary(coverImagePath, "coverImages");
+    let avatar = null;
+    let coverImage = null;
 
-    if(!avatar || !coverImage){
-        throw new ApiError(400,"Avatar or cover image upload failed");
+    if (avatarPath) {
+        avatar = await uplodOnCloudinary(avatarPath, "avatars");
     }
+
+    if (coverImagePath) {
+        coverImage = await uplodOnCloudinary(coverImagePath, "coverImages");
+    }
+
+    const defaultAvatarUrl = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=500&q=80";
+    const defaultCoverUrl = "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=1200&q=80";
+
     const user = await User.create({
         fullName,
         email,
-        avatar: avatar.url,
-        coverImage: coverImage.url,
+        avatar: avatar?.url || defaultAvatarUrl,
+        coverImage: coverImage?.url || defaultCoverUrl,
         username :username.toLowerCase(),
         password
     })
